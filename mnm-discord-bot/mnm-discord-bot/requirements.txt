@@ -1,0 +1,5 @@
+# Runtime dependencies (kept minimal for a resource-constrained host)
+discord.py>=2.4,<3
+openai>=1.66
+python-dotenv>=1.0
+Pillow>=10.0   # optional: geometry diagrams (the bot works without it)
