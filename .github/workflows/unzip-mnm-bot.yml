@@ -1,0 +1,58 @@
+name: Unzip MNM Discord Bot
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "mnm-discord-bot.zip"
+      - ".github/workflows/unzip-mnm-bot.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: unzip-mnm-discord-bot
+  cancel-in-progress: false
+
+jobs:
+  unzip:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract ZIP safely
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          archive = Path("mnm-discord-bot.zip")
+          destination = Path("mnm-discord-bot")
+          if not archive.is_file():
+              raise SystemExit("mnm-discord-bot.zip was not found in the repository root.")
+
+          destination.mkdir(parents=True, exist_ok=True)
+          with ZipFile(archive) as zf:
+              for member in zf.infolist():
+                  target = (destination / member.filename).resolve()
+                  if not target.is_relative_to(destination.resolve()):
+                      raise SystemExit(f"Unsafe ZIP path rejected: {member.filename}")
+              zf.extractall(destination)
+
+          print(f"Extracted {len(zf.infolist())} entries into {destination}/")
+          PY
+
+      - name: Commit extracted files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mnm-discord-bot/
+          if git diff --cached --quiet; then
+            echo "No extracted-file changes to commit."
+          else
+            git commit -m "Extract MNM Discord bot ZIP"
+            git push
+          fi
